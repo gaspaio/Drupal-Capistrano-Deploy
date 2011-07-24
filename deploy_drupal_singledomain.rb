@@ -2,28 +2,33 @@
 # Deploy Drupal 7 single domain
 # ---
 # Version::   0.5
-# Author::    Rodolfo 'Gaspaio' Ripado  (mailto:ggaspaio@gmail.com)
-# Acknowledgements:: Herve Leclerc at AlterWay.
+# Author::    Rodolfo Ripado  (mailto:ggaspaio@gmail.com)
+# Acknowledgements:: Herve Leclerc
 #
 # Currently supports
 # * Setup:: Prepares the a host for deployment creating directories and a local_settings.php
 # * Deploy:: Deploy HG tip
 # * Rollback:: Return to previous relase, and updates DB to how it was just before the latest release
+#
+# Notes
+# * This recipe supposes the settings.php file is versionned, and that you have, at the end of this file the following code :
+#   if (file_exists('sites/default/local_settings.php')) {
+#      include 'sites/default/local_settings.php';
+#   }
 # =========================================================================
 
 
 # =============================================
 # Script variables. These must be set in client capfile.
 # =============================================
-_cset(:db_type)         { abort "Please specify the drupal database type" }
-_cset(:db_name)         { abort "Please specify the drupal database name" }
-_cset(:db_user)         { abort "Please specify the drupal database username" }
-_cset(:db_password)     { abort "Please specify the drupal database password" }
+_cset(:db_type)         { abort "Please specify the Drupal database type (:db_type)." }
+_cset(:db_name)         { abort "Please specify the Drupal database name (:db_name)." }
+_cset(:db_username)     { abort "Please specify the Drupal database username (:db_username)." }
+_cset(:db_password)     { abort "Please specify the Drupal database password (:db_password)." }
+_cset(:drupal_version)  { abort "Please specify the Drupal version (6 or 7) (:drupal_version)." }
 
-# =============================================
-# Fixed defaults. Change these at your own risk, 
-# (well tested) support for different values is left for future versions.
-# =============================================
+
+# Fixed defaults. Change these at your own risk, (well tested) support for different values is left for future versions.
 set :deploy_via,        :remote_cache
 
 
@@ -56,9 +61,41 @@ _cset(:previous_release_settings)     { releases.length > 1 ? File.join(previous
 _cset(:previous_release_files)        { releases.length > 1 ? File.join(previous_release, 'sites', domain, files) : nil }
 
 
+# =========================
+# Helper methods
+# =========================
+
+# Builds initial contents of the Drupal website's settings file
+def drupal_settings(version)
+  if version == '6'
+    settings = <<-STRING
+<?php
+  $db_url = "#{db_type}://#{db_username}:#{db_password}@#{db_host}/#{db_name}";
+    STRING
+  elsif version == '7'
+    settings = <<-STRING
+<?php
+  $databases = array ('default' => array ('default' => array (
+    'database' => '#{db_name}',
+    'username' => '#{db_username}',
+    'password' => '#{db_password}',
+    'host' => '#{db_host}',
+    'port' => '',
+    'driver' => '#{db_type}',
+    'prefix' => '',
+  )));
+    STRING
+  else
+    abort "Unsupported Drupal version #{version}."
+  end
+end
+
+
+
 # =========================================================================
 # Overwrites to the DEPLOY tasks in the capistrano library.
 # =========================================================================
+
 namespace :deploy do
 
   desc <<-DESC
@@ -97,6 +134,9 @@ namespace :deploy do
     Creates the necessary file structure and the shared Drupal settings file.
   DESC
   task :setup, :except => { :no_release => true } do
+    #try to create configuration file before writing directories to server
+    configuration = drupal_settings(drupal_version)
+
     #Create shared directories
     dirs = [deploy_to, releases_path, shared_path, dbbackups_path]
     dirs += shared_children.map { |d| File.join(shared_path, d) }
@@ -106,18 +146,6 @@ namespace :deploy do
     CMD
 
     #create drupal config file
-    configuration = <<EOF
-<?php
-  $databases = array ('default' => array ('default' => array (
-        'database' => '#{db_name}',
-        'username' => '#{db_user}',
-        'password' => '#{db_password}',
-        'host' => '#{db_host}',
-        'port' => '',
-        'driver' => '#{db_type}',
-        'prefix' => '',
-  )));
-EOF
     put configuration, shared_settings
   end
 
