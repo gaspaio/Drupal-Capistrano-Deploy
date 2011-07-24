@@ -3,7 +3,7 @@
 # ---
 # Version::   0.5
 # Author::    Rodolfo Ripado  (mailto:ggaspaio@gmail.com)
-# Acknowledgements:: Herve Leclerc
+# Acknowledgements:: Herve Leclerc at AlterWay
 #
 # Currently supports
 # * Setup:: Prepares the a host for deployment creating directories and a local_settings.php
@@ -152,6 +152,14 @@ namespace :deploy do
 
   desc "Rebuild files and settings symlinks"
   task :finalize_update, :except => { :no_release => true } do
+    on_rollback do
+      if previous_release
+        run "ln -nfs #{shared_files} #{previous_release_files} && ln -nfs #{shared_settings} #{previous_release_settings}"
+      else
+        logger.important "no previous release to rollback to, rollback of drupal shared data skipped."
+      end
+    end
+
     run <<-CMD
       ln -nfs #{shared_files} #{release_files} &&
       ln -nfs #{shared_settings} #{release_settings}
