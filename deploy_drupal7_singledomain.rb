@@ -2,8 +2,8 @@
 # Deploy Drupal 7 single domain
 # ---
 # Version::   0.5
-# Author::    Rodolfo Ripado  (mailto:ggaspaio@gmail.com)
-# Acknowledgements:: Herve Leclerc
+# Author::    Rodolfo 'Gaspaio' Ripado  (mailto:ggaspaio@gmail.com)
+# Acknowledgements:: Herve Leclerc at AlterWay.
 #
 # Currently supports
 # * Setup:: Prepares the a host for deployment creating directories and a local_settings.php
@@ -20,7 +20,10 @@ _cset(:db_name)         { abort "Please specify the drupal database name" }
 _cset(:db_user)         { abort "Please specify the drupal database username" }
 _cset(:db_password)     { abort "Please specify the drupal database password" }
 
-# Fixed defaults. Change these at your own risk, (well tested) support for different values is left for future versions.
+# =============================================
+# Fixed defaults. Change these at your own risk, 
+# (well tested) support for different values is left for future versions.
+# =============================================
 set :deploy_via,        :remote_cache
 
 
